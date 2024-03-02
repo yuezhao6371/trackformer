@@ -5,7 +5,6 @@ Setting up the jupyter notebook on Snellius:
 ```
 module load 2022
 module load Python/3....
-module load TensorFlow/2.11.0-foss-2022a
 virtualenv .venv
 source .venv/bin/activate
 pip install notebook
