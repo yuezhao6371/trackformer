@@ -172,3 +172,7 @@ configs/
 runenv
 runjupyter
 runnew
+*.sh
+*.out
+*.err
+*.swp

@@ -23,6 +23,7 @@ class TransformerClassifier(nn.Module):
             num_layers=num_layers,
         )
         self.classifier = nn.Linear(embed_dim, num_classes)
+        self.num_classes = num_classes
         
     def forward(self,x):
         x = self.embedding(x)

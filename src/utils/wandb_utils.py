@@ -9,6 +9,7 @@ class WandbLogger:
         job_type="training",
     ):
         self.config = config
+        self.entity = config["entity"]
         self.project_name = config["project_name"]
         self.run_name = config["run_name"]
         self.output_dir = output_dir
@@ -18,6 +19,7 @@ class WandbLogger:
     def initialize(self):
         if not self.initialized:
             wandb.init(
+                entity=self.entity,
                 project=self.project_name,
                 name=self.run_name,
                 config=self.config,
@@ -34,6 +36,7 @@ class WandbLogger:
         artifact = wandb.Artifact('model', type='model')
         artifact = add_file(os.path.join(output_dir, "wandb_model_checkpoint.pt"))
         wandb.log_artifact(artifact)
+        logging.info("Model checkpoint logged to wandb.")
 
     def finish(self):
         if self.initialized:

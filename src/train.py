@@ -35,18 +35,19 @@ def initialize_wandb(config, output_dir):
     wandb_logger = wandb_utils.WandbLogger(config=config["wandb"],
         output_dir=output_dir,
         job_type="training")
-    return wandb_logger.initialize()
+    wandb_logger.initialize()
+    return wandb_logger
 
-def setup_training(config):
+def setup_training(config, device):
     # model
     model = TransformerClassifier(
         inputfeature_dim = config['model']['inputfeature_dim'],
-        num_classes = config['model']['num_classes'],
+        num_classes = config['data']['num_classes'],
         num_heads=config['model']['num_heads'],
         embed_dim = config['model']['embed_dim'],
         num_layers = config['model']['num_layers'],
         dropout=config['model']['dropout']
-    )
+    ).to(device)
 
     # optimizer
     initial_lr = config['training']['scheduler']['initial_lr']
@@ -69,6 +70,9 @@ def train_epoch(model, trainloader, optimizer, criterion, device, config, epoch,
     total_loss = 0.0
     correct_predictions = 0
     total_predictions = 0
+    class_correct_counts = np.zeros(model.num_classes)
+    false_positive_counts = np.zeros(model.num_classes)
+    class_total_counts = np.zeros(model.num_classes)
 
     for inputs, labels in trainloader:
         inputs, labels = inputs.to(device), labels.to(device)
@@ -79,7 +83,7 @@ def train_epoch(model, trainloader, optimizer, criterion, device, config, epoch,
         outputs = model(inputs)
 
         # flatten outputs and labels
-        outputs = outputs.view(-1, num_classes)
+        outputs = outputs.view(-1, model.num_classes)
         labels = labels.view(-1)
 
         loss = criterion(outputs, labels)
@@ -91,14 +95,14 @@ def train_epoch(model, trainloader, optimizer, criterion, device, config, epoch,
         # Calculate training accuracy for this batch
         _, predicted = torch.max(outputs.data, 1) # getting predicted labels
         batch_correct = (predicted == labels).sum().item()
-        epoch_correct += batch_correct
-        epoch_total += labels.size(0)
-        for c in range(0, num_classes): # this includes class 0 which is padding, but it's ignored later
+        correct_predictions += batch_correct
+        total_predictions += labels.size(0)
+        for c in range(0, model.num_classes): # this includes class 0 which is padding, but it's ignored later
             class_correct_counts[c] += ((predicted == c) & (labels == c)).sum().item()
             false_positive_counts[c] += ((predicted == c) & (labels != c)).sum().item()
             class_total_counts[c] += (labels == c).sum().item()
 
-    epoch_accuracy = 100 * epoch_correct / epoch_total
+    epoch_accuracy = 100 * correct_predictions / total_predictions
     epoch_loss = total_loss / len(trainloader)
     
     classes_mask = class_total_counts > 0 # excluding empty classes
@@ -114,7 +118,7 @@ def train_epoch(model, trainloader, optimizer, criterion, device, config, epoch,
     epoch_score = 0 if total_classes == 0 else 100 * successful_classes / total_classes
     false_pos_avg = 0 if total_classes == 0 else 100 * false_positives / total_classes
 
-    if (epoch + 1) % config.epoch_log_interval == 0:
+    if (epoch + 1) % config['logging']['epoch_log_interval'] == 0:
     #if (epoch + 1) % epoch_log_interval == 0 and i==len(trainloader)-1:
         logging.info(f'Epoch {epoch + 1}, Training loss: {epoch_loss}')
         logging.info(f'Training accuracy: {epoch_accuracy:.2f}%')
@@ -130,12 +134,15 @@ def validate_epoch(model, valloader, criterion, device, config, epoch, wandb_log
     val_loss = 0.0
     val_correct = 0
     val_total = 0
+    val_class_correct_counts = np.zeros(model.num_classes)
+    val_false_positive_counts = np.zeros(model.num_classes)
+    val_class_total_counts = np.zeros(model.num_classes)
     
     with torch.no_grad():
         for inputs, labels in valloader:
             inputs = inputs.to(device)
             labels = labels.to(device)
-            outputs = model(inputs).view(-1, num_classes)
+            outputs = model(inputs).view(-1, model.num_classes)
             labels = labels.view(-1)
             loss = criterion(outputs, labels)
             
@@ -143,16 +150,13 @@ def validate_epoch(model, valloader, criterion, device, config, epoch, wandb_log
             val_correct += (predicted == labels).sum().item()
             val_total += labels.size(0)
             val_loss += loss.item()
-            for c in range(num_classes): # this includes class 0 which is padding, but it's ignored later
+            for c in range(model.num_classes): # this includes class 0 which is padding, but it's ignored later
                 val_class_correct_counts[c] += ((predicted == c) & (labels == c)).sum().item()
                 val_false_positive_counts[c] += ((predicted == c) & (labels != c)).sum().item()
                 val_class_total_counts[c] += (labels == c).sum().item()
 
     val_accuracy = 100 * val_correct / val_total
     val_loss /= len(valloader)
-    
-    train_losses.append(epoch_loss)
-    val_losses.append(val_loss)
     
     classes_mask_val = val_class_total_counts > 0 # excluding empty classes
     classes_mask_val[0] = False  # Exclude the class with label 0, which is padding
@@ -167,7 +171,7 @@ def validate_epoch(model, valloader, criterion, device, config, epoch, wandb_log
     val_score = 0 if total_classes_val == 0 else 100 * successful_classes_val / total_classes_val
     val_false_pos_avg = 0 if total_classes_val == 0 else 100 * false_positives_val / total_classes_val
     
-    if (epoch + 1) % epoch_print_interval == 0:
+    if (epoch + 1) % config['logging']['epoch_log_interval'] == 0:
            #if (epoch + 1) % epoch_print_interval == 0 and i==len(trainloader)-1:
         logging.info(f'Epoch {epoch + 1}, Val loss: {val_loss}')
         logging.info(f'Val accuracy: {val_accuracy:.2f}%')
@@ -232,28 +236,33 @@ def main(config_path):
     output_utils.copy_config_to_output(config_path, output_dir)
     setup_logging(config, output_dir)
     wandb_logger = initialize_wandb(config, output_dir)
-    early_stopper = training_utils.EarlyStopping(config['early_stopping'], output_dir, trace_func=logging.info)
+    early_stopper = training_utils.EarlyStopping(config['training']['early_stopping'], output_dir)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logging.info(f"Device: {device}")
 
-    model, optimizer, scheduler, criterion = setup_training(config)
+    model, optimizer, lr_scheduler, criterion = setup_training(config, device)
     train_loader, val_loader, test_loader = data_utils.load_dataloader(config, device)
 
     logging.info("Started training and validation")
     training_utils.log_memory_usage()
     for epoch in range(config['training']['num_epochs']):
-        training_utils.adjust_learning_rate(optimizer, epoch, config)
         train_epoch(model, train_loader, optimizer, criterion, device, config, epoch, wandb_logger)
 
         val_loss = validate_epoch(model, val_loader, criterion, device, config, epoch, wandb_logger)
         # adjust learning rate based on validation loss
         lr_scheduler.step(val_loss) 
         # stop training and checkpoint the model if val loss stops improving
-        early_stopper(val_loss, model)
+        early_stopper(val_loss)
+        if early_stopper.should_stop():
+            logging.info("Early stopping triggered. Saving checkpoint.")
+            wandb_logger.save_model(output_dir)
+            break
+        # learning rate warm-up
+        training_utils.adjust_learning_rate(optimizer, epoch, config)
 
     logging.info("Finished training and started testing")
-    test(model, test_loader, device, config.num_classes, wandb_logger)
+    test(model, test_loader, device, config['data']['num_classes'], wandb_logger)
     logging.info("Finished testing")
 
     total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)

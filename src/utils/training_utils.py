@@ -13,41 +13,39 @@ def adjust_learning_rate(optimizer, epoch, config):
     if epoch < warmup_epochs:
         initial_lr = config['training']['scheduler']['initial_lr']
         target_lr = config['training']['scheduler']['target_lr']
-        lr = initial_lr + (target_lr - initial_lr) * (epoch / warmup_epochs)
+        current_lr = initial_lr + (target_lr - initial_lr) * (epoch / warmup_epochs)
         for param_group in optimizer.param_groups:
-            param_group['lr'] = lr
+            param_group['lr'] = current_lr
 
 
 class EarlyStopping:
     """Early stops the training if validation loss doesn't improve after a given patience."""
-    def __init__(self, config, output_dir, trace_func=print):
+    def __init__(self, config, output_dir):
         self.patience = config['patience']
         self.verbose = config['verbose']
-        self.delta = config['delta']
         self.path = os.path.join(output_dir, "earlystop_checkpoint.pt")
-        self.trace_func = trace_func
-        self.counter = 0
-        self.best_score = None
+        self.counter = 0 # track num of epochs with no improvement
         self.early_stop = False
-        self.val_loss_min = np.Inf
+        self.best_val_loss = np.Inf
 
-    def __call__(self, val_loss, model):
-        score = -val_loss
-        if self.best_score is None:
-            self.best_score = score
-            self.save_checkpoint(val_loss, model)
-        elif score < self.best_score + self.delta:
+    def __call__(self, val_loss):
+        """
+        Evaluates whether early stopping should be triggered based on the latest validation loss.
+        - val_loss: The validation loss for the current epoch.
+        """
+        if val_loss < self.best_val_loss:
+            self.best_val_loss = val_loss
+            self.counter = 0
+            if self.verbose:
+                logging.info(f"Validation loss decreased to {val_loss:.6f}")
+        else:
             self.counter += 1
-            self.trace_func(f'EarlyStopping counter: {self.counter} out of {self.patience}')
+            if self.verbose:
+                logging.info(f"No improvement in validation loss for {self.counter} consecutive epochs.")
+
             if self.counter >= self.patience:
                 self.early_stop = True
-        else:
-            self.best_score = score
-            self.save_checkpoint(val_loss, model)
-            self.counter = 0
+                logging.info(f"Early stopping triggered. Best val_loss: {self.best_val_loss:.6f}, Last val_loss: {val_loss:.6f}")
 
-    def save_checkpoint(self, val_loss, model):
-        if self.verbose:
-            self.trace_func(f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}). Saving model ...')
-        torch.save(model.state_dict(), self.path)
-        self.val_loss_min = val_loss
+    def should_stop(self):
+        return self.early_stop
