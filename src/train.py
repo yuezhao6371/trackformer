@@ -12,6 +12,7 @@ import logging
 import wandb
 import argparse
 from model import TransformerClassifier
+import utils.metrics_calculator as metrics_calculator
 import utils.training_utils as training_utils
 import utils.data_utils as data_utils
 import utils.output_utils as output_utils
@@ -65,14 +66,8 @@ def setup_training(config, device):
 
     return model, optimizer, lr_scheduler, criterion
 
-def train_epoch(model, trainloader, optimizer, criterion, device, config, epoch, wandb_logger):
+def train_epoch(model, trainloader, optimizer, criterion, device, config, epoch, metrics_calculator, wandb_logger):
     model.train()  # Set model to training mode
-    total_loss = 0.0
-    correct_predictions = 0
-    total_predictions = 0
-    class_correct_counts = np.zeros(model.num_classes)
-    false_positive_counts = np.zeros(model.num_classes)
-    class_total_counts = np.zeros(model.num_classes)
 
     for inputs, labels in trainloader:
         inputs, labels = inputs.to(device), labels.to(device)
@@ -89,54 +84,26 @@ def train_epoch(model, trainloader, optimizer, criterion, device, config, epoch,
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
+        
+        # update values used for calculating metrics
+        metrics_calculator.update(outputs, labels, loss=loss.item())
 
-        total_loss += loss.item()
-
-        # Calculate training accuracy for this batch
-        _, predicted = torch.max(outputs.data, 1) # getting predicted labels
-        batch_correct = (predicted == labels).sum().item()
-        correct_predictions += batch_correct
-        total_predictions += labels.size(0)
-        for c in range(0, model.num_classes): # this includes class 0 which is padding, but it's ignored later
-            class_correct_counts[c] += ((predicted == c) & (labels == c)).sum().item()
-            false_positive_counts[c] += ((predicted == c) & (labels != c)).sum().item()
-            class_total_counts[c] += (labels == c).sum().item()
-
-    epoch_accuracy = 100 * correct_predictions / total_predictions
-    epoch_loss = total_loss / len(trainloader)
-    
-    classes_mask = class_total_counts > 0 # excluding empty classes
-    classes_mask[0] = False  # Exclude the class with label 0, which is padding
-    class_success_rates = np.where(classes_mask, class_correct_counts / class_total_counts, 0)
-    false_positive_rates = np.where(classes_mask, false_positive_counts / class_total_counts, 0)
-    successful_classes_mask = (class_success_rates > 0.5) & (false_positive_rates < 0.5) & classes_mask
-    successful_classes = np.sum(successful_classes_mask) # already excluding padding class
-    false_positives = np.sum(false_positive_rates)
-    total_classes = np.sum(classes_mask)
-    # checking for zero in case all the initial outputs have class 0,
-    # in that case we'd be dividing by zero
-    epoch_score = 0 if total_classes == 0 else 100 * successful_classes / total_classes
-    false_pos_avg = 0 if total_classes == 0 else 100 * false_positives / total_classes
+    # calculate metrics
+    epoch_accuracy = metrics_calculator.calculate_accuracy()
+    epoch_loss = metrics_calculator.calculate_loss(len(trainloader))
+    epoch_score = metrics_calculator.calculate_trackml_score()
 
     if (epoch + 1) % config['logging']['epoch_log_interval'] == 0:
     #if (epoch + 1) % epoch_log_interval == 0 and i==len(trainloader)-1:
         logging.info(f'Epoch {epoch + 1}, Training loss: {epoch_loss}')
         logging.info(f'Training accuracy: {epoch_accuracy:.2f}%')
         logging.info(f'Training TrackML score: {epoch_score:.2f}%')
-        logging.info(f'Training false positive rate: {false_pos_avg:.2f}%')
 
-    logging.info(f"Train Epoch: {epoch}, Loss: {epoch_loss:.4f}, Accuracy: {epoch_accuracy:.2f}%")
-    wandb_logger.log({"train_loss": epoch_loss, "train_accuracy": epoch_accuracy, "epoch": epoch})
+    wandb_logger.log({"train_loss": epoch_loss, "train_accuracy": epoch_accuracy, "train_score": epoch_score, "epoch": epoch})
 
 
-def validate_epoch(model, valloader, criterion, device, config, epoch, wandb_logger):
+def validate_epoch(model, valloader, criterion, device, config, epoch, metrics_calculator, wandb_logger):
     model.eval()  # Set model to evaluation mode
-    val_loss = 0.0
-    val_correct = 0
-    val_total = 0
-    val_class_correct_counts = np.zeros(model.num_classes)
-    val_false_positive_counts = np.zeros(model.num_classes)
-    val_class_total_counts = np.zeros(model.num_classes)
     
     with torch.no_grad():
         for inputs, labels in valloader:
@@ -145,52 +112,27 @@ def validate_epoch(model, valloader, criterion, device, config, epoch, wandb_log
             outputs = model(inputs).view(-1, model.num_classes)
             labels = labels.view(-1)
             loss = criterion(outputs, labels)
+        
+            metrics_calculator.update(outputs, labels, loss=loss.item())
             
-            _, predicted = torch.max(outputs.data, 1)
-            val_correct += (predicted == labels).sum().item()
-            val_total += labels.size(0)
-            val_loss += loss.item()
-            for c in range(model.num_classes): # this includes class 0 which is padding, but it's ignored later
-                val_class_correct_counts[c] += ((predicted == c) & (labels == c)).sum().item()
-                val_false_positive_counts[c] += ((predicted == c) & (labels != c)).sum().item()
-                val_class_total_counts[c] += (labels == c).sum().item()
-
-    val_accuracy = 100 * val_correct / val_total
-    val_loss /= len(valloader)
-    
-    classes_mask_val = val_class_total_counts > 0 # excluding empty classes
-    classes_mask_val[0] = False  # Exclude the class with label 0, which is padding
-    val_class_success_rates = np.where(classes_mask_val, val_class_correct_counts / val_class_total_counts, 0)
-    val_false_positive_rates = np.where(classes_mask_val, val_false_positive_counts / val_class_total_counts, 0)
-    successful_classes_mask_val = (val_class_success_rates > 0.5) & (val_false_positive_rates < 0.5) & classes_mask_val
-    successful_classes_val = np.sum(successful_classes_mask_val) # already excluding padding class
-    false_positives_val = np.sum(val_false_positive_rates)
-    total_classes_val = np.sum(classes_mask_val)
-    # checking for zero in case all the initial outputs have class 0,
-    # in that case we'd be dividing by zero
-    val_score = 0 if total_classes_val == 0 else 100 * successful_classes_val / total_classes_val
-    val_false_pos_avg = 0 if total_classes_val == 0 else 100 * false_positives_val / total_classes_val
+    epoch_accuracy = metrics_calculator.calculate_accuracy()
+    epoch_loss = metrics_calculator.calculate_loss(len(valloader))
+    epoch_score = metrics_calculator.calculate_trackml_score()
     
     if (epoch + 1) % config['logging']['epoch_log_interval'] == 0:
            #if (epoch + 1) % epoch_print_interval == 0 and i==len(trainloader)-1:
-        logging.info(f'Epoch {epoch + 1}, Val loss: {val_loss}')
-        logging.info(f'Val accuracy: {val_accuracy:.2f}%')
-        logging.info(f'Val TrackML score: {val_score:.2f}%')
-        logging.info(f'Val false positive rate: {val_false_pos_avg:.2f}%')
+        logging.info(f'Epoch {epoch + 1}, Val loss: {epoch_loss}')
+        logging.info(f'Val accuracy: {epoch_accuracy:.2f}%')
+        logging.info(f'Val TrackML score: {epoch_score:.2f}%')
     
-    logging.info(f"Val Epoch: {epoch}, Loss: {val_loss:.4f}, Accuracy: {val_accuracy:.2f}%")
-    wandb_logger.log({"val_loss": val_loss, "val_accuracy": val_accuracy, "epoch": epoch})
+    wandb_logger.log({"val_loss": epoch_loss, "val_accuracy": epoch_accuracy, "val_scoore": epoch_score, "epoch": epoch})
 
-    return val_loss
+    return epoch_loss
 
  
 def test(model, test_loader, device, num_classes, wandb_logger):
     model.eval()
-    correct = 0
-    total = 0
-    test_class_correct_counts = np.zeros(num_classes)
-    test_false_positive_counts = np.zeros(num_classes)
-    test_class_total_counts = np.zeros(num_classes)
+    metrics_calculator = MetricsCalculator(model.num_classes)
     
     with torch.no_grad():
         for inputs, labels in testloader:
@@ -200,41 +142,22 @@ def test(model, test_loader, device, num_classes, wandb_logger):
             outputs = model(inputs).view(-1, num_classes)
             labels = labels.view(-1)
             
-            _, predicted = torch.max(outputs.data, 1)
-            
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-            for c in range(num_classes):
-                test_class_correct_counts[c] += ((predicted == c) & (labels == c)).sum().item()
-                test_false_positive_counts[c] += ((predicted == c) & (labels != c)).sum().item()
-                test_class_total_counts[c] += (labels == c).sum().item()
-    
-    accuracy = 100 * correct / total
-    test_classes_mask = test_class_total_counts > 0 # excluding empty classes
-    test_classes_mask[0] = False  # Exclude the class with label 0, which is padding
-    zerovalues = np.where(test_classes_mask & (test_class_total_counts==0))
-    
-    test_class_success_rates = np.where(test_classes_mask, test_class_correct_counts / test_class_total_counts, 0)
-    test_false_positive_rates = np.where(test_classes_mask, test_false_positive_counts / test_class_total_counts, 0)
-    successful_test_classes_mask = (test_class_success_rates > 0.5) & (test_false_positive_rates < 0.5) & test_classes_mask # already excluded padding class
-    successful_test_classes = np.sum(successful_test_classes_mask)
-    test_false_positives = np.sum(test_false_positive_rates)
-    test_total_classes = np.sum(classes_mask)
-    test_score = 0 if test_total_classes == 0 else 100 * successful_test_classes / test_total_classes
-    test_false_pos_avg = 0 if test_total_classes == 0 else 100 * test_false_positives / test_total_classes
+            metrics_calculator.update(outputs, labels)           
+ 
+    accuracy = metrics_calculator.calculate_accuracy()
+    score = metrics_calculator.calculate_trackml_score()
     
     logging.info(f'Test accuracy: {accuracy:.2f}%')
-    logging.info(f'Test TrackML score: {test_score:.2f}%')
-    logging.info(f'Test false positive rate: {test_false_pos_avg:.2f}%')
-    logging.info(f'Sanity check, this value should be zero: {zerovalues:.2f}%')
+    logging.info(f'Test TrackML score: {score:.2f}%')
+    wandb_logger.log({"test_accuracy": accuracy, "test_scoore": score})
     
-    model.train()
 
 def main(config_path):
     config = load_config(config_path)
     output_dir = output_utils.unique_output_dir(config) # with time stamp
     output_utils.copy_config_to_output(config_path, output_dir)
     setup_logging(config, output_dir)
+    logging.info(f'output_dir: {output_dir}%')
     wandb_logger = initialize_wandb(config, output_dir)
     early_stopper = training_utils.EarlyStopping(config['training']['early_stopping'], output_dir)
 
@@ -243,13 +166,19 @@ def main(config_path):
 
     model, optimizer, lr_scheduler, criterion = setup_training(config, device)
     train_loader, val_loader, test_loader = data_utils.load_dataloader(config, device)
+    train_metrics_calculator = metrics_calculator.MetricsCalculator(model.num_classes)
+    val_metrics_calculator = metrics_calculator.MetricsCalculator(model.num_classes)
 
     logging.info("Started training and validation")
     training_utils.log_memory_usage()
     for epoch in range(config['training']['num_epochs']):
-        train_epoch(model, train_loader, optimizer, criterion, device, config, epoch, wandb_logger)
+        # resetting values used for calculating epoch metrics
+        train_metrics_calculator.reset()
+        val_metrics_calculator.reset()
+        
+        train_epoch(model, train_loader, optimizer, criterion, device, config, epoch, train_metrics_calculator, wandb_logger)
 
-        val_loss = validate_epoch(model, val_loader, criterion, device, config, epoch, wandb_logger)
+        val_loss = validate_epoch(model, val_loader, criterion, device, config, epoch, val_metrics_calculator, wandb_logger)
         # adjust learning rate based on validation loss
         lr_scheduler.step(val_loss) 
         # stop training and checkpoint the model if val loss stops improving
