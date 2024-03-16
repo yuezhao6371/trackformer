@@ -130,26 +130,26 @@ def validate_epoch(model, valloader, criterion, device, config, epoch, metrics_c
     return epoch_loss
 
  
-def test(model, test_loader, device, num_classes, wandb_logger):
+def test(model, testloader, device, wandb_logger):
     model.eval()
-    metrics_calculator = MetricsCalculator(model.num_classes)
+    test_metrics_calculator = metrics_calculator.MetricsCalculator(model.num_classes)
     
     with torch.no_grad():
         for inputs, labels in testloader:
             inputs = inputs.to(device)
             labels = labels.to(device)
             
-            outputs = model(inputs).view(-1, num_classes)
+            outputs = model(inputs).view(-1, model.num_classes)
             labels = labels.view(-1)
             
-            metrics_calculator.update(outputs, labels)           
+            test_metrics_calculator.update(outputs, labels)           
  
-    accuracy = metrics_calculator.calculate_accuracy()
-    score = metrics_calculator.calculate_trackml_score()
+    accuracy = test_metrics_calculator.calculate_accuracy()
+    score = test_metrics_calculator.calculate_trackml_score()
     
     logging.info(f'Test accuracy: {accuracy:.2f}%')
     logging.info(f'Test TrackML score: {score:.2f}%')
-    wandb_logger.log({"test_accuracy": accuracy, "test_scoore": score})
+    wandb_logger.log({"test_accuracy": accuracy, "test_score": score})
     
 
 def main(config_path):
@@ -191,7 +191,7 @@ def main(config_path):
         training_utils.adjust_learning_rate(optimizer, epoch, config)
 
     logging.info("Finished training and started testing")
-    test(model, test_loader, device, config['data']['num_classes'], wandb_logger)
+    test(model, test_loader, device, wandb_logger)
     logging.info("Finished testing")
 
     total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
