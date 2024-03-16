@@ -1,15 +1,18 @@
 # particle_track_reconstruction
-Various approaches for particle track reconstruction in high energy physics
+Transformer-inspired model for particle track reconstruction in high energy physics
 
-Setting up the jupyter notebook on Snellius:
+Running the code on Snellius:
 ```
+module purge
 module load 2022
 module load Python/3....
 virtualenv .venv
 source .venv/bin/activate
-pip install notebook
+pip install torch
 pip install pandas
-pip install typing-extensions
-pip install requests
-jupyter notebook --no-browser --port=8080
+pip install toml
+pip install wandb
+
+cd <path_to_src>
+python train.py <path_to_toml_file>
 ```
