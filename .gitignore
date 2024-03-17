@@ -161,11 +161,11 @@ cython_debug/
 #.idea/
 
 # Project folders
-data/
-results/
+data/*
+results/*
 notebooks/
 trackml/
-configs/
+configs/*
 !configs/example.toml
 
 # other files

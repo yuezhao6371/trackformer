@@ -1,0 +1,54 @@
+[experiment]
+name = "experiment_name"
+description = "initial run"
+
+[data]
+data_dir = "data_dir"
+train_inputfile = "train_input_tensor.pt"
+train_outputfile = "train_output_tensor.pt"
+val_inputfile = "val_input_tensor.pt"
+val_outputfile = "val_output_tensor.pt"
+test_inputfile = "test_input_tensor.pt"
+test_outputfile = "test_output_tensor.pt"
+num_classes = 451
+
+
+[model]
+inputfeature_dim = 3
+num_heads = 8
+embed_dim = 128
+num_layers = 6
+dropout = 0.0
+
+
+[training]
+batch_size = 64
+num_epochs = 100
+shuffle = false # whether training data should be shuffled
+
+[training.scheduler]
+# type is only ReduceOnPlateau atm
+warmup_epochs = 5
+initial_lr = 1e-4
+target_lr = 1e-3
+mode = "min"
+factor = 0.5
+patience = 10
+verbose = true
+
+[training.early_stopping]
+patience = 7
+verbose = true
+
+
+[output]
+base_path = "../results/"
+
+[logging]
+level = "INFO"
+epoch_log_interval = 2
+
+[wandb]
+entity = "entity"
+project_name = "project_name"
+run_name = "run_name"
