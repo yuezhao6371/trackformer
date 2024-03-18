@@ -98,6 +98,9 @@ def train_epoch(model, trainloader, optimizer, criterion, device, config, epoch,
         logging.info(f'Epoch {epoch + 1}, Training loss: {epoch_loss}')
         logging.info(f'Training accuracy: {epoch_accuracy:.2f}%')
         logging.info(f'Training TrackML score: {epoch_score:.2f}%')
+    
+    if epoch == 0:
+        training_utils.log_memory_usage()
 
     wandb_logger.log({"train_loss": epoch_loss, "train_accuracy": epoch_accuracy, "train_score": epoch_score, "epoch": epoch})
 
