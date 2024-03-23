@@ -128,7 +128,7 @@ def validate_epoch(model, valloader, criterion, device, config, epoch, metrics_c
         logging.info(f'Val accuracy: {epoch_accuracy:.2f}%')
         logging.info(f'Val TrackML score: {epoch_score:.2f}%')
     
-    wandb_logger.log({"val_loss": epoch_loss, "val_accuracy": epoch_accuracy, "val_scoore": epoch_score, "epoch": epoch})
+    wandb_logger.log({"val_loss": epoch_loss, "val_accuracy": epoch_accuracy, "val_score": epoch_score, "epoch": epoch})
 
     return epoch_loss
 
