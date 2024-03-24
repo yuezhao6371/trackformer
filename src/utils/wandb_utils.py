@@ -28,13 +28,13 @@ class WandbLogger:
             )
             self.initialized = True
 
-    def log(self,data):
+    def log(self, data):
         if self.initialized:
             wandb.log(data)
 
-    def save_model(output_dir):
+    def save_model(self, output_dir):
         artifact = wandb.Artifact('model', type='model')
-        artifact = add_file(os.path.join(output_dir, "wandb_model_checkpoint.pt"))
+        artifact.add_file(os.path.join(output_dir, "wandb_model_checkpoint.pt"))
         wandb.log_artifact(artifact)
         logging.info("Model checkpoint logged to wandb.")
 
