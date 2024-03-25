@@ -1,5 +1,6 @@
 import wandb
 import os
+import torch
 
 class WandbLogger:
     def __init__(
@@ -18,7 +19,7 @@ class WandbLogger:
 
     def initialize(self):
         if not self.initialized:
-            wandb.init(
+            self.run = wandb.init(
                 entity=self.entity,
                 project=self.project_name,
                 name=self.run_name,
@@ -29,14 +30,18 @@ class WandbLogger:
             self.initialized = True
 
     def log(self, data):
-        if self.initialized:
-            wandb.log(data)
+        if not self.initialized:
+            initialize()
+        wandb.log(data)
 
-    def save_model(self, output_dir):
+    def save_model(self, model, output_dir):
+        if not self.initialized:
+            initialize()
+        file_path = os.path.join(output_dir, 'model.pth')
+        torch.save(model.state_dict(), file_path)
         artifact = wandb.Artifact('model', type='model')
-        artifact.add_file(os.path.join(output_dir, "wandb_model_checkpoint.pt"))
-        wandb.log_artifact(artifact)
-        logging.info("Model checkpoint logged to wandb.")
+        artifact.add_file(file_path)
+        self.run.log_artifact(artifact)
 
     def finish(self):
         if self.initialized:

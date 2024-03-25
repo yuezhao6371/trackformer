@@ -177,3 +177,4 @@ runnew
 *.err
 *.swp
 *backup
+test.py

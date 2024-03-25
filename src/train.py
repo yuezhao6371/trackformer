@@ -188,7 +188,8 @@ def main(config_path):
         early_stopper(val_loss)
         if early_stopper.should_stop():
             logging.info("Early stopping triggered. Saving checkpoint.")
-            wandb_logger.save_model(output_dir)
+            wandb_logger.save_model(model, output_dir)
+            logging.info("Checkpoint saved to output_dir.")
             break
         # learning rate warm-up
         training_utils.adjust_learning_rate(optimizer, epoch, config)
