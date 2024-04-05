@@ -12,6 +12,7 @@ pip install torch
 pip install pandas
 pip install toml
 pip install wandb
+pip install --user git+https://github.com/LAL/trackml-library.git
 
 cd <path_to_src>
 python train.py <path_to_toml_file>
