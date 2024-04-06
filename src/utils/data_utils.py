@@ -10,18 +10,12 @@ def load_dataloader(config, device):
     val_output = load_data(data_dir, config['data']['val_outputfile'])    
     test_input = load_data(data_dir, config['data']['test_inputfile'])    
     test_output = load_data(data_dir, config['data']['test_outputfile'])
+    test_hit_ids = load_data(data_dir, config['data']['test_hit_ids_file'])
+    test_event_ids = load_data(data_dir, config['data']['test_event_ids_file'])
 
-    train_input_tensor = torch.tensor(train_input, dtype=torch.float32).to(device)
-    train_labels_tensor = torch.tensor(train_output, dtype=torch.long).to(device) 
-    train_dataset = TensorDataset(train_input_tensor, train_labels_tensor) 
-
-    val_input_tensor = torch.tensor(val_input, dtype=torch.float32).to(device)
-    val_labels_tensor = torch.tensor(val_output, dtype=torch.long).to(device)
-    val_dataset = TensorDataset(val_input_tensor, val_labels_tensor)
-
-    test_input_tensor = torch.tensor(test_input, dtype=torch.float32).to(device)
-    test_labels_tensor = torch.tensor(test_output, dtype=torch.long).to(device)
-    test_dataset = TensorDataset(test_input_tensor, test_labels_tensor)
+    train_dataset = TensorDataset(train_input, train_output) 
+    val_dataset = TensorDataset(val_input, val_output)
+    test_dataset = TensorDataset(test_input, test_output, test_hit_ids, test_event_ids)
 
     batch_size = config['training']['batch_size']
     shuffle = config['training']['shuffle']
