@@ -170,8 +170,7 @@ configs/*
 
 # other files
 runenv
-runjupyter
-runnew
+runj
 *.sh
 *.out
 *.err

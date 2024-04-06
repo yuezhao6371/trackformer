@@ -133,26 +133,29 @@ def validate_epoch(model, valloader, criterion, device, config, epoch, metrics_c
     return epoch_loss
 
  
-def test(model, testloader, device, wandb_logger):
+def test(model, testloader, truths_df, device, wandb_logger):
     model.eval()
     test_metrics_calculator = metrics_calculator.MetricsCalculator(model.num_classes)
-    
+
     with torch.no_grad():
-        for inputs, labels in testloader:
-            inputs = inputs.to(device)
-            labels = labels.to(device)
+        for inputs, labels, hit_ids, event_ids in testloader: #per batch
+            inputs, labels = inputs.to(device), labels.to(device)
             
             outputs = model(inputs).view(-1, model.num_classes)
             labels = labels.view(-1)
             
             test_metrics_calculator.update(outputs, labels)           
+            test_metrics_calculator.add_true_score(hit_ids, event_ids, outputs, truths_df)
  
     accuracy = test_metrics_calculator.calculate_accuracy()
     score = test_metrics_calculator.calculate_trackml_score()
+    all_true_scores = test_metrics_calculator.get_all_true_scores()
+    true_score = np.mean(all_true_scores) if all_true_scores else 0
     
     logging.info(f'Test accuracy: {accuracy:.2f}%')
     logging.info(f'Test TrackML score: {score:.2f}%')
-    wandb_logger.log({"test_accuracy": accuracy, "test_score": score})
+    logging.info(f'Test true score: {true_score:.2f}%')
+    wandb_logger.log({"test_accuracy": accuracy, "test_score": score, "true_score": true_score})
     
 
 def main(config_path):
@@ -195,7 +198,8 @@ def main(config_path):
         training_utils.adjust_learning_rate(optimizer, epoch, config)
 
     logging.info("Finished training and started testing")
-    test(model, test_loader, device, wandb_logger)
+    truths_df = data_utils.load_truths(config)
+    test(model, test_loader, truths_df, device, wandb_logger)
     logging.info("Finished testing")
 
     total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)

@@ -33,3 +33,9 @@ def load_dataloader(config, device):
 def load_data(data_dir, file_name):
     file_path = os.path.join(data_dir, file_name)
     return torch.load(file_path)
+
+def load_truths(config):
+    data_dir = config['data']['data_dir']
+    test_truth_filename = config['data']['test_truthfile']
+    test_truth_filepath = os.path.join(data_dir, test_truth_filename)
+    return pd.read_csv(test_truth_filepath)

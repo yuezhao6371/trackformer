@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from trackml.score import score_event
 
 class MetricsCalculator:
     def __init__(self, num_classes):
@@ -14,6 +15,7 @@ class MetricsCalculator:
         self.total_loss = 0.0
         self.correct_predictions = 0
         self.total_predictions = 0
+        self.all_true_scores = []
 
     def update(self, outputs, labels, loss=0):
         """
@@ -42,6 +44,39 @@ class MetricsCalculator:
             # how many hits are predicted to have label c
             self.predicted_total_counts[c] += (predicted == c).sum().item()
 
+    def add_true_score(self, hit_ids, event_ids, outputs, truths_df):
+        # per batch
+        _, predicted = torch.max(outputs.data, 1)
+
+        predicted = predicted.cpu().numpy()
+        hit_ids = hit_ids.cpu().numpy()
+        event_ids = event_ids.numpy()
+
+        predictions_df = pd.DataFrame({
+            'hit_id': hit_ids,
+            'track_id': predicted,
+            'event_id': event_ids,
+        })
+
+        unique_event_ids = np.unique(event_ids)
+        for event_id in unique_event_ids:
+            event_predictions_df = predictions_df[predictions_df['event_id']==event_id]
+            event_truths_df = truths_df[truths_df['event_id']==event_id]
+            """the function below is imported from trackml-library
+            Compute the TrackML event score for a single event.
+            Parameters
+            ----------
+            truth : pandas.DataFrame
+            Truth information. Must have hit_id, particle_id, and weight columns.
+            submission : pandas.DataFrame
+            Proposed hit/track association. Must have hit_id and track_id columns.
+            """
+            event_true_score = score_event(event_truths_df, event_predictions_df)
+            self.all_true_scores.append(event_true_score)
+
+    def get_all_true_scores(self):
+        return self.all_true_scores
+
     def calculate_accuracy(self):
         """
         Calculates the epoch-wide accuracy.
@@ -53,8 +88,6 @@ class MetricsCalculator:
         Calculates the epoch-wide loss.
         """
         return self.total_loss / num_batches # if the final batch is smaller, it is slightly over represented
-        
-
     def calculate_trackml_score(self):
         """
         Calculates the trackml score based on double majority.
