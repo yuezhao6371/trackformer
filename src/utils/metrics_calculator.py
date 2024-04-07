@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from trackml.score import score_event
+import pandas as pd
 
 class MetricsCalculator:
     def __init__(self, num_classes):
@@ -45,12 +46,15 @@ class MetricsCalculator:
             self.predicted_total_counts[c] += (predicted == c).sum().item()
 
     def add_true_score(self, hit_ids, event_ids, outputs, truths_df):
-        # per batch
-        _, predicted = torch.max(outputs.data, 1)
+        _, flat_predicted = torch.max(outputs.data, 1)
 
-        predicted = predicted.cpu().numpy()
-        hit_ids = hit_ids.cpu().numpy()
-        event_ids = event_ids.numpy()
+        # producing matching ids and labels
+        flat_hit_ids = hit_ids.view(-1)
+        flat_event_ids = event_ids.view(-1)
+
+        predicted = flat_predicted.cpu().numpy()
+        hit_ids = flat_hit_ids.cpu().numpy()
+        event_ids = flat_event_ids.cpu().numpy()
 
         predictions_df = pd.DataFrame({
             'hit_id': hit_ids,
@@ -60,6 +64,7 @@ class MetricsCalculator:
 
         unique_event_ids = np.unique(event_ids)
         for event_id in unique_event_ids:
+            if event_id == 0: continue # skip padding
             event_predictions_df = predictions_df[predictions_df['event_id']==event_id]
             event_truths_df = truths_df[truths_df['event_id']==event_id]
             """the function below is imported from trackml-library
