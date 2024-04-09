@@ -91,19 +91,20 @@ def train_epoch(model, trainloader, optimizer, criterion, device, config, epoch,
     # calculate metrics
     epoch_accuracy = metrics_calculator.calculate_accuracy()
     epoch_loss = metrics_calculator.calculate_loss(len(trainloader))
-    epoch_score = metrics_calculator.calculate_trackml_score()
 
     if (epoch + 1) % config['logging']['epoch_log_interval'] == 0:
-    #if (epoch + 1) % epoch_log_interval == 0 and i==len(trainloader)-1:
         logging.info(f'Epoch {epoch + 1}, Training loss: {epoch_loss}')
         logging.info(f'Training accuracy: {epoch_accuracy:.2f}%')
+
+    wandb_logger.log({"train_loss": epoch_loss, "train_accuracy": epoch_accuracy, "epoch": epoch})
+ 
+    if (epoch + 1) % 10 == 0:
+        epoch_score = metrics_calculator.calculate_trackml_score()
         logging.info(f'Training TrackML score: {epoch_score:.2f}%')
+        wandb_logger.log({"train_score": epoch_score, "epoch": epoch})
     
     if epoch == 0:
         training_utils.log_memory_usage()
-
-    wandb_logger.log({"train_loss": epoch_loss, "train_accuracy": epoch_accuracy, "train_score": epoch_score, "epoch": epoch})
-
 
 def validate_epoch(model, valloader, criterion, device, config, epoch, metrics_calculator, wandb_logger):
     model.eval()  # Set model to evaluation mode
@@ -120,15 +121,17 @@ def validate_epoch(model, valloader, criterion, device, config, epoch, metrics_c
             
     epoch_accuracy = metrics_calculator.calculate_accuracy()
     epoch_loss = metrics_calculator.calculate_loss(len(valloader))
-    epoch_score = metrics_calculator.calculate_trackml_score()
     
     if (epoch + 1) % config['logging']['epoch_log_interval'] == 0:
-           #if (epoch + 1) % epoch_print_interval == 0 and i==len(trainloader)-1:
         logging.info(f'Epoch {epoch + 1}, Val loss: {epoch_loss}')
         logging.info(f'Val accuracy: {epoch_accuracy:.2f}%')
-        logging.info(f'Val TrackML score: {epoch_score:.2f}%')
     
-    wandb_logger.log({"val_loss": epoch_loss, "val_accuracy": epoch_accuracy, "val_score": epoch_score, "epoch": epoch})
+    wandb_logger.log({"val_loss": epoch_loss, "val_accuracy": epoch_accuracy, "epoch": epoch})
+
+    if (epoch + 1) % 10 == 0:
+        epoch_score = metrics_calculator.calculate_trackml_score()
+        logging.info(f'Val TrackML score: {epoch_score:.2f}%')
+        wandb_logger.log({"val_score": epoch_score, "epoch": epoch})
 
     return epoch_loss
 
