@@ -136,12 +136,12 @@ def validate_epoch(model, valloader, criterion, device, config, epoch, metrics_c
     return epoch_loss
 
  
-def test(model, testloader, truths_df, device, wandb_logger):
+def test(model, testloader, helperloader, truths_df, device, wandb_logger):
     model.eval()
     test_metrics_calculator = metrics_calculator.MetricsCalculator(model.num_classes)
 
     with torch.no_grad():
-        for inputs, labels, hit_ids, event_ids in testloader: #per batch
+        for (inputs, labels), (hit_ids, event_ids) in zip(testloader, helperloader): #per batch
             inputs, labels = inputs.to(device), labels.to(device)
             
             outputs = model(inputs).view(-1, model.num_classes)
@@ -174,7 +174,7 @@ def main(config_path):
     logging.info(f"Device: {device}")
 
     model, optimizer, lr_scheduler, criterion = setup_training(config, device)
-    train_loader, val_loader, test_loader = data_utils.load_dataloader(config, device)
+    train_loader, val_loader, test_loader, helper_loader = data_utils.load_dataloader(config, device)
     train_metrics_calculator = metrics_calculator.MetricsCalculator(model.num_classes)
     val_metrics_calculator = metrics_calculator.MetricsCalculator(model.num_classes)
 
@@ -202,7 +202,7 @@ def main(config_path):
 
     logging.info("Finished training and started testing")
     truths_df = data_utils.load_truths(config)
-    test(model, test_loader, truths_df, device, wandb_logger)
+    test(model, test_loader, helper_loader, truths_df, device, wandb_logger)
     logging.info("Finished testing")
 
     total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
