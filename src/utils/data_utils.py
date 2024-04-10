@@ -5,18 +5,9 @@ import pandas as pd
 
 def load_dataloader(config, device):
     data_dir = config['data']['data_dir']    
-    train_input = load_data(data_dir, config['data']['train_inputfile'])    
-    train_output = load_data(data_dir, config['data']['train_outputfile'])    
-    val_input = load_data(data_dir, config['data']['val_inputfile'])    
-    val_output = load_data(data_dir, config['data']['val_outputfile'])    
-    test_input = load_data(data_dir, config['data']['test_inputfile'])    
-    test_output = load_data(data_dir, config['data']['test_outputfile'])
-    test_hit_ids = load_data(data_dir, config['data']['test_hit_ids_file'])
-    test_event_ids = load_data(data_dir, config['data']['test_event_ids_file'])
-
-    train_dataset = TensorDataset(train_input, train_output) 
-    val_dataset = TensorDataset(val_input, val_output)
-    test_dataset = TensorDataset(test_input, test_output, test_hit_ids, test_event_ids)
+    train_dataset = load_data(data_dir, config['data']['train_file'])    
+    val_dataset = load_data(data_dir, config['data']['val_file'])    
+    test_dataset = load_data(data_dir, config['data']['test_file'])    
 
     batch_size = config['training']['batch_size']
     shuffle = config['training']['shuffle']
