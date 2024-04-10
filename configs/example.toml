@@ -4,14 +4,10 @@ description = "initial run"
 
 [data]
 data_dir = "data_dir"
-train_inputfile = "train_input_tensor.pt"
-train_outputfile = "train_output_tensor.pt"
-val_inputfile = "val_input_tensor.pt"
-val_outputfile = "val_output_tensor.pt"
-test_inputfile = "test_input_tensor.pt"
-test_outputfile = "test_output_tensor.pt"
-test_hit_ids_file = "test_hit_ids_tensor.pt"
-test_event_ids_file = "test_event_ids_tensor.pt"
+train_file = "train_tensor.pt"
+val_file = "val_tensor.pt"
+test_file = "test_tensor.pt"
+test_helperfile = "test_helper_tensor.pt"
 test_truthfile = "test_truths.csv"
 num_classes = 451
 
