@@ -27,8 +27,8 @@ class TransformerClassifier(nn.Module):
         
     def forward(self,x):
         x = self.embedding(x)
-        
-        padding_mask = (x.sum(dim=-1) == 0.0)
+
+        padding_mask = (x.sum(dim=-1) == 0)
         
         x = self.transformer_encoder(x, src_key_padding_mask=padding_mask)
         # x = self.transformer_encoder(x)
