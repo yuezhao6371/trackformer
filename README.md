@@ -5,10 +5,11 @@ Running the code on Snellius:
 ```
 module purge
 module load 2022
-module load PyTorch/1.12.0-foss-2022a-CUDA-11.7.0
+module load Python/3.10.4-GCCcore-11.3.0
 virtualenv .venv
 source .venv/bin/activate
-pip install pandas
+pip install --upgrade pip
+pip install torch
 pip install toml
 pip install wandb
 pip install git+https://github.com/LAL/trackml-library.git
