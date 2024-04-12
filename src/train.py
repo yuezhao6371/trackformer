@@ -207,6 +207,8 @@ def main(config_path):
 
     total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     logging.info(f"Total Trainable Parameters: {total_params}")
+    wandb_logger.save_model(model, output_dir)
+    logging.info("Checkpoint saved to output_dir.")
     wandb_logger.finish()
 
 
