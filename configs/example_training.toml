@@ -48,6 +48,7 @@ base_path = "../results/"
 [logging]
 level = "INFO"
 epoch_log_interval = 2
+model_save_interval = 50
 
 [wandb]
 entity = "entity"
