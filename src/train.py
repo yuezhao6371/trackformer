@@ -66,7 +66,7 @@ def setup_training(config, device):
 
     return model, optimizer, lr_scheduler, criterion
 
-def train_epoch(model, trainloader, optimizer, criterion, device, config, epoch, metrics_calculator, wandb_logger):
+def train_epoch(model, trainloader, optimizer, criterion, device, config, epoch, metrics_calculator, wandb_logger, output_dir):
     model.train()  # Set model to training mode
 
     for inputs, labels in trainloader:
@@ -188,7 +188,7 @@ def main(config_path):
         train_metrics_calculator.reset()
         val_metrics_calculator.reset()
         
-        train_epoch(model, train_loader, optimizer, criterion, device, config, epoch, train_metrics_calculator, wandb_logger)
+        train_epoch(model, train_loader, optimizer, criterion, device, config, epoch, train_metrics_calculator, wandb_logger, output_dir)
 
         val_loss = validate_epoch(model, val_loader, criterion, device, config, epoch, val_metrics_calculator, wandb_logger)
         # adjust learning rate based on validation loss
