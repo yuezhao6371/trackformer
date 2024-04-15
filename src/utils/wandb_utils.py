@@ -34,10 +34,10 @@ class WandbLogger:
             initialize()
         wandb.log(data)
 
-    def save_model(self, model, output_dir):
+    def save_model(self, model, model_name, output_dir):
         if not self.initialized:
             initialize()
-        file_path = os.path.join(output_dir, 'model.pth')
+        file_path = os.path.join(output_dir, model_name)
         torch.save(model.state_dict(), file_path)
         artifact = wandb.Artifact('model', type='model')
         artifact.add_file(file_path)

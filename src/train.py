@@ -92,19 +92,22 @@ def train_epoch(model, trainloader, optimizer, criterion, device, config, epoch,
     epoch_accuracy = metrics_calculator.calculate_accuracy()
     epoch_loss = metrics_calculator.calculate_loss(len(trainloader))
 
-    if (epoch + 1) % config['logging']['epoch_log_interval'] == 0:
+    if epoch % config['logging']['epoch_log_interval'] == 0:
         logging.info(f'Epoch {epoch + 1}, Training loss: {epoch_loss}')
         logging.info(f'Training accuracy: {epoch_accuracy:.2f}%')
 
     wandb_logger.log({"train_loss": epoch_loss, "train_accuracy": epoch_accuracy, "epoch": epoch})
  
-    if (epoch + 1) % 10 == 0:
+    if epoch % 10 == 0:
         epoch_score = metrics_calculator.calculate_trackml_score()
         logging.info(f'Training TrackML score: {epoch_score:.2f}%')
         wandb_logger.log({"train_score": epoch_score, "epoch": epoch})
     
     if epoch == 0:
         training_utils.log_memory_usage()
+
+    if epoch % config['logging']['model_save_interval'] == 0:
+        wandb_logger.save_model(model, f'model_epoch_{epoch}.pth', output_dir)
 
 def validate_epoch(model, valloader, criterion, device, config, epoch, metrics_calculator, wandb_logger):
     model.eval()  # Set model to evaluation mode
@@ -122,13 +125,13 @@ def validate_epoch(model, valloader, criterion, device, config, epoch, metrics_c
     epoch_accuracy = metrics_calculator.calculate_accuracy()
     epoch_loss = metrics_calculator.calculate_loss(len(valloader))
     
-    if (epoch + 1) % config['logging']['epoch_log_interval'] == 0:
+    if epoch % config['logging']['epoch_log_interval'] == 0:
         logging.info(f'Epoch {epoch + 1}, Val loss: {epoch_loss}')
         logging.info(f'Val accuracy: {epoch_accuracy:.2f}%')
     
     wandb_logger.log({"val_loss": epoch_loss, "val_accuracy": epoch_accuracy, "epoch": epoch})
 
-    if (epoch + 1) % 10 == 0:
+    if epoch % 10 == 0:
         epoch_score = metrics_calculator.calculate_trackml_score()
         logging.info(f'Val TrackML score: {epoch_score:.2f}%')
         wandb_logger.log({"val_score": epoch_score, "epoch": epoch})
@@ -194,21 +197,21 @@ def main(config_path):
         early_stopper(val_loss)
         if early_stopper.should_stop():
             logging.info("Early stopping triggered. Saving checkpoint.")
-            wandb_logger.save_model(model, output_dir)
+            wandb_logger.save_model(model, f'model_earlystop_epoch_{epoch}.pth', output_dir)
             logging.info("Checkpoint saved to output_dir.")
             break
         # learning rate warm-up
         training_utils.adjust_learning_rate(optimizer, epoch, config)
 
-    logging.info("Finished training and started testing")
+    logging.info("Finished training.")
+    wandb_logger.save_model(model, 'model_final.pth', output_dir)
+    logging.info("Checkpoint saved to output_dir.")
     truths_df = data_utils.load_truths(config)
     test(model, test_loader, helper_loader, truths_df, device, wandb_logger)
     logging.info("Finished testing")
 
     total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     logging.info(f"Total Trainable Parameters: {total_params}")
-    wandb_logger.save_model(model, output_dir)
-    logging.info("Checkpoint saved to output_dir.")
     wandb_logger.finish()
 
 

@@ -166,7 +166,7 @@ results/*
 notebooks/
 trackml/
 configs/*
-!configs/example.toml
+!configs/example*.toml
 
 # other files
 runenv
