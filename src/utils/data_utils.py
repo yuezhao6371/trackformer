@@ -19,7 +19,7 @@ def load_dataloader(config, device):
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, collate_fn=collate_fn)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, num_workers=num_workers, collate_fn=collate_fn)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=num_workers, collate_fn=collate_fn)
-    test_helper_loader = DataLoader(test_helper_dataset, batch_size=batch_size, num_workers=num_workers) # padding not necessary here
+    test_helper_loader = DataLoader(test_helper_dataset, batch_size=batch_size, num_workers=num_workers, collate_fn=collate_fn)
     return train_loader, val_loader, test_loader, test_helper_loader
 
 def load_truths(config):
@@ -30,10 +30,10 @@ def load_truths(config):
 
 # dynamically padding data based on the max seq_length of the batch
 def collate_fn(batch):
-    coords, labels = zip(*batch)
-    coords_padded = pad_sequence(coords, batch_first=True, padding_value=0.0)
-    labels_padded = pad_sequence(labels, batch_first=True, padding_value=0)
-    return coords_padded, labels_padded 
+    dat1, dat2 = zip(*batch)
+    dat1_padded = pad_sequence(dat1, batch_first=True, padding_value=0.0)
+    dat2_padded = pad_sequence(dat2, batch_first=True, padding_value=0)
+    return dat1_padded, dat2_padded 
 
 class ForwardPassDataset(Dataset):
     def __init__(self, data_dir, file_name):
