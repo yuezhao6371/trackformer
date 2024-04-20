@@ -20,14 +20,15 @@ num_heads = 8
 embed_dim = 128
 num_layers = 6
 dropout = 0.1
-use_flash_attention = false
+use_flash_attention = true
 
 
 [training]
 batch_size = 64
 total_epochs = 100
 shuffle = false # whether training data should be shuffled
-start_from_scratch = true
+start_from_scratch = false
+checkpoint_path = "path/to/your/checkpoint.pth"
 
 [training.scheduler]
 # type is only ReduceOnPlateau atm

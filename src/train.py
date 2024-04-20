@@ -61,7 +61,27 @@ def setup_training(config, device):
     # criterion
     criterion = nn.CrossEntropyLoss()
 
-    return model, optimizer, lr_scheduler, criterion
+    # check whether to load from checkpoint
+    if not config['training']['start_from_scratch']:
+        if 'checkpoint_path' not in config['training'] or not config['training']['checkpoint_path']:
+            logging.error("Checkpoint path must be provided when resuming from a checkpoint.")
+            sys.exit("Error: Checkpoint path not provided but required for resuming training.")
+        elif not os.path.exists(config['training']['checkpoint_path']):
+            logging.error(f"Checkpoint file not found: {config['training']['checkpoint_path']}")
+            sys.exit("Error: Checkpoint file does not exist.")
+        else:
+            checkpoint = torch.load(config['training']['checkpoint_path'])
+            model.load_state_dict(checkpoint['model_state'])
+            optimizer.load_state_dict(checkpoint['optimizer_state'])
+            scheduler.load_state_dict(checkpoint['scheduler_state'])
+            start_epoch = checkpoint['epoch'] + 1
+            logging.info("Resuming training from checkpoint.")
+    else:
+        start_epoch = 0
+        if 'checkpoint_path' in config['training'] and config['training']['checkpoint_path']:
+            logging.warning("Checkpoint path provided but will not be used since training starts from scratch.")
+    
+    return model, optimizer, lr_scheduler, criterion, start_epoch
 
 def train_epoch(model, trainloader, optimizer, criterion, device, config, epoch, metrics_calculator, wandb_logger, output_dir):
     model.train()  # Set model to training mode
@@ -173,7 +193,7 @@ def main(config_path):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logging.info(f"Device: {device}")
 
-    model, optimizer, lr_scheduler, criterion = setup_training(config, device)
+    model, optimizer, lr_scheduler, criterion, start_epoch = setup_training(config, device)
     loaders = data_utils.load_train_dataloader(config, devicei, mode='all')
     train_loader = loaders['train']
     val_loader = loaders['val']
@@ -184,7 +204,7 @@ def main(config_path):
 
     logging.info("Started training and validation")
     training_utils.log_memory_usage()
-    for epoch in range(config['training']['num_epochs']):
+    for epoch in range(start_epoch, config['training']['total_epochs']):
         # resetting values used for calculating epoch metrics
         train_metrics_calculator.reset()
         val_metrics_calculator.reset()
