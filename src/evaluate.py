@@ -84,7 +84,9 @@ def main(config_path):
     logging.info(f"Device: {device}")
 
     model = load_model(config, device)
-    data_loader, helper_loader = data_utils.load_eval_dataloader(config, device)
+    loaders = data_utils.load_dataloader(config, device, mode='eval')
+    data_loader = loaders['test']
+    helper_loader = loaders['test_helper']
     truths_df = data_utils.load_truths(config)
 
     logging.info("Started evaluation.")
