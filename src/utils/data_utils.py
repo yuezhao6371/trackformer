@@ -5,22 +5,32 @@ import pandas as pd
 from torch.nn.utils.rnn import pad_sequence
 import logging
 
-def load_trainloader(config, device):
+def load_train_dataloader(config, device):
     data_dir = config['data']['data_dir']    
     train_dataset = ForwardPassDataset(data_dir, config['data']['train_file'])
     val_dataset = ForwardPassDataset(data_dir, config['data']['val_file'])
+
+    batch_size = config['training']['batch_size']
+    shuffle = config['training']['shuffle']
+    num_workers = config['data']['dataloader_num_workers']
+    logging.info("Loading train data with DataLoader")
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, collate_fn=collate_fn)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, num_workers=num_workers, collate_fn=collate_fn)
+    return train_loader, val_loader, test_loader
+
+def load_eval_dataloader(config, device):
+    data_dir = config['data']['data_dir']    
     test_dataset = ForwardPassDataset(data_dir, config['data']['test_file'])
     test_helper_dataset = ScoringHelperDataset(data_dir, config['data']['test_helperfile'])
 
     batch_size = config['training']['batch_size']
-    shuffle = config['training']['shuffle']
     num_workers = config['data']['dataloader_num_workers']
     logging.info("Loading data with DataLoader")
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, collate_fn=collate_fn)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, num_workers=num_workers, collate_fn=collate_fn)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=num_workers, collate_fn=collate_fn)
     test_helper_loader = DataLoader(test_helper_dataset, batch_size=batch_size, num_workers=num_workers, collate_fn=collate_fn)
-    return train_loader, val_loader, test_loader, test_helper_loader
+    return test_loader, test_helper_loader
 
 def load_truths(config):
     data_dir = config['data']['data_dir']

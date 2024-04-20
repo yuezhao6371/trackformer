@@ -39,7 +39,7 @@ class WandbLogger:
             initialize()
         file_path = os.path.join(output_dir, model_name)
         torch.save(model.state_dict(), file_path)
-        artifact = wandb.Artifact('model', type='model')
+        artifact = wandb.Artifact('model_weights', type='model')
         artifact.add_file(file_path)
         self.run.log_artifact(artifact)
 

@@ -174,7 +174,8 @@ def main(config_path):
     logging.info(f"Device: {device}")
 
     model, optimizer, lr_scheduler, criterion = setup_training(config, device)
-    train_loader, val_loader, test_loader, helper_loader = data_utils.load_trainloader(config, device)
+    train_loader, val_loader = data_utils.load_train_dataloader(config, device)
+    test_loader, helper_loader = data_utils.load_eval_dataloader(config, device)
     train_metrics_calculator = metrics_calculator.MetricsCalculator(model.num_classes)
     val_metrics_calculator = metrics_calculator.MetricsCalculator(model.num_classes)
 
