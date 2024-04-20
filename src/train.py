@@ -194,7 +194,7 @@ def main(config_path):
     logging.info(f"Device: {device}")
 
     model, optimizer, lr_scheduler, criterion, start_epoch = setup_training(config, device)
-    loaders = data_utils.load_train_dataloader(config, devicei, mode='all')
+    loaders = data_utils.load_dataloader(config, device, mode='all')
     train_loader = loaders['train']
     val_loader = loaders['val']
     test_loader = loaders['test']
