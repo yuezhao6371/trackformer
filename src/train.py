@@ -1,11 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.nn.utils.rnn import pad_sequence
 from torch.optim.lr_scheduler import ReduceLROnPlateau, LambdaLR
 import numpy as np
-import pandas as pd
-import random
 import os
 import toml
 import logging
@@ -177,7 +174,7 @@ def main(config_path):
     logging.info(f"Device: {device}")
 
     model, optimizer, lr_scheduler, criterion = setup_training(config, device)
-    train_loader, val_loader, test_loader, helper_loader = data_utils.load_dataloader(config, device)
+    train_loader, val_loader, test_loader, helper_loader = data_utils.load_trainloader(config, device)
     train_metrics_calculator = metrics_calculator.MetricsCalculator(model.num_classes)
     val_metrics_calculator = metrics_calculator.MetricsCalculator(model.num_classes)
 

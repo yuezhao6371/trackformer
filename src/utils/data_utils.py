@@ -5,7 +5,7 @@ import pandas as pd
 from torch.nn.utils.rnn import pad_sequence
 import logging
 
-def load_dataloader(config, device):
+def load_trainloader(config, device):
     data_dir = config['data']['data_dir']    
     train_dataset = ForwardPassDataset(data_dir, config['data']['train_file'])
     val_dataset = ForwardPassDataset(data_dir, config['data']['val_file'])
