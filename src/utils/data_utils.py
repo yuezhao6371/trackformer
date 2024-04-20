@@ -26,8 +26,6 @@ def load_eval_dataloader(config, device):
     batch_size = config['training']['batch_size']
     num_workers = config['data']['dataloader_num_workers']
     logging.info("Loading data with DataLoader")
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, collate_fn=collate_fn)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, num_workers=num_workers, collate_fn=collate_fn)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=num_workers, collate_fn=collate_fn)
     test_helper_loader = DataLoader(test_helper_dataset, batch_size=batch_size, num_workers=num_workers, collate_fn=collate_fn)
     return test_loader, test_helper_loader

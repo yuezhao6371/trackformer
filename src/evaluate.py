@@ -20,7 +20,7 @@ def load_config(config_path):
         config = toml.load(config_file)
     return config
 
-def load_model(config, device)
+def load_model(config, device):
     model = TransformerClassifier(
         inputfeature_dim = config['model']['inputfeature_dim'],
         num_classes = config['data']['num_classes'],
@@ -37,14 +37,14 @@ def load_model(config, device)
 
 def setup_logging(config, output_dir):
     level = getattr(logging, config["logging"]["level"].upper(), logging.INFO)
-    log_file = os.path.join(output_dir, 'training.log')
+    log_file = os.path.join(output_dir, 'evaluation.log')
     logging.basicConfig(level=level, format='%(asctime)s - %(levelname)s - %(message)s',
                         handlers=[logging.FileHandler(log_file), logging.StreamHandler()])
 
 def initialize_wandb(config, output_dir):
     wandb_logger = wandb_utils.WandbLogger(config=config["wandb"],
         output_dir=output_dir,
-        job_type="training")
+        job_type="evaluation")
     wandb_logger.initialize()
     return wandb_logger
 
@@ -83,13 +83,13 @@ def main(config_path):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logging.info(f"Device: {device}")
 
-    model = load_model(config)
-    data_loader, helper_loader = data_utils.load_evalloader(config, device)
+    model = load_model(config, device)
+    data_loader, helper_loader = data_utils.load_eval_dataloader(config, device)
     truths_df = data_utils.load_truths(config)
 
     logging.info("Started evaluation.")
     training_utils.log_memory_usage()
-    evaluate(model, test_loader, helper_loader, truths_df, device, wandb_logger)
+    evaluate(model, data_loader, helper_loader, truths_df, device, wandb_logger)
     logging.info("Finished evaluation.")
     wandb_logger.finish()
 
