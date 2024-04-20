@@ -55,8 +55,7 @@ def setup_training(config, device):
     mode = config['training']['scheduler']['mode']
     factor = config['training']['scheduler']['factor']
     patience = config['training']['scheduler']['patience']
-    verbose = config['training']['scheduler']['verbose']
-    lr_scheduler = ReduceLROnPlateau(optimizer, mode=mode, factor=factor, patience=patience, verbose=verbose)
+    lr_scheduler = ReduceLROnPlateau(optimizer, mode=mode, factor=factor, patience=patience)
 
     # criterion
     criterion = nn.CrossEntropyLoss()
@@ -123,8 +122,6 @@ def train_epoch(model, trainloader, optimizer, criterion, device, config, epoch,
     if epoch == 0:
         training_utils.log_memory_usage()
 
-    if epoch % config['logging']['model_save_interval'] == 0:
-        wandb_logger.save_model(model, f'model_epoch_{epoch}.pth', output_dir)
 
 def validate_epoch(model, valloader, criterion, device, config, epoch, metrics_calculator, wandb_logger):
     model.eval()  # Set model to evaluation mode
@@ -218,14 +215,17 @@ def main(config_path):
         early_stopper(val_loss)
         if early_stopper.should_stop():
             logging.info("Early stopping triggered. Saving checkpoint.")
-            wandb_logger.save_model(model, f'model_earlystop_epoch_{epoch}.pth', output_dir)
+            wandb_logger.save_model(model, f'model_earlystop_epoch_{epoch}.pth', optimizer, lr_scheduler, epoch, output_dir)
             logging.info("Checkpoint saved to output_dir.")
             break
         # learning rate warm-up
         training_utils.adjust_learning_rate(optimizer, epoch, config)
 
+        if epoch % config['logging']['model_save_interval'] == 0:
+            wandb_logger.save_model(model, f'model_epoch_{epoch}.pth', optimizer, lr_scheduler, epoch, output_dir)
+
     logging.info("Finished training.")
-    wandb_logger.save_model(model, 'model_final.pth', output_dir)
+    wandb_logger.save_model(model, 'model_final.pth', optimizer, lr_scheduler, epoch, output_dir)
     logging.info("Checkpoint saved to output_dir.")
     truths_df = data_utils.load_truths(config)
     test(model, test_loader, helper_loader, truths_df, device, wandb_logger)

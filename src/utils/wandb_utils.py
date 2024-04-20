@@ -34,7 +34,7 @@ class WandbLogger:
             initialize()
         wandb.log(data)
 
-    def save_model(self, model, model_name, output_dir):
+    def save_model(self, model, model_name, optimizer, scheduler, epoch, output_dir):
         if not self.initialized:
             initialize()
         file_path = os.path.join(output_dir, model_name)
