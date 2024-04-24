@@ -72,7 +72,7 @@ def setup_training(config, device):
             checkpoint = torch.load(config['training']['checkpoint_path'])
             model.load_state_dict(checkpoint['model_state'])
             optimizer.load_state_dict(checkpoint['optimizer_state'])
-            scheduler.load_state_dict(checkpoint['scheduler_state'])
+            lr_scheduler.load_state_dict(checkpoint['scheduler_state'])
             start_epoch = checkpoint['epoch'] + 1
             logging.info("Resuming training from checkpoint.")
     else:
