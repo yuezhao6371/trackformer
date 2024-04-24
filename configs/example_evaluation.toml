@@ -13,7 +13,7 @@ num_classes = 451
 
 
 [model]
-state_dict_path = "../results/run/model_weights.pth"
+checkpoint_path = "../results/run/model_final.pth"
 inputfeature_dim = 3
 num_heads = 8
 embed_dim = 128

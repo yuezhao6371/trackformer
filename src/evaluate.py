@@ -30,19 +30,25 @@ def load_model(config, device):
         dropout=config['model']['dropout']
     ).to(device)
 
-    model_path = config["model"]["state_dict_path"]
-    model.load_state_dict(torch.load(model_path))
+    if 'checkpoint_path' not in config['model'] or not config['model']['checkpoint_path']:
+        logging.error('Checkpoint path must be provided for evaluation.')
+    else:
+        checkpoint = torch.load(config['model']['checkpoint_path'])
+        model.load_state_dict(checkpoint['model_state'])
+        epoch = checkpoint['epoch'] + 1
+        logging.info(f'Loaded model_state of epoch {epoch}. Ignoring optimizer_state and scheduler_state. Starting evaluation from checkpoint.')
+
     model.eval()
     return model 
 
 def setup_logging(config, output_dir):
-    level = getattr(logging, config["logging"]["level"].upper(), logging.INFO)
+    level = getattr(logging, config['logging']['level'].upper(), logging.INFO)
     log_file = os.path.join(output_dir, 'evaluation.log')
     logging.basicConfig(level=level, format='%(asctime)s - %(levelname)s - %(message)s',
                         handlers=[logging.FileHandler(log_file), logging.StreamHandler()])
 
 def initialize_wandb(config, output_dir):
-    wandb_logger = wandb_utils.WandbLogger(config=config["wandb"],
+    wandb_logger = wandb_utils.WandbLogger(config=config['wandb'],
         output_dir=output_dir,
         job_type="evaluation")
     wandb_logger.initialize()

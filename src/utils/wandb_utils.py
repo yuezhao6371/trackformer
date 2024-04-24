@@ -38,12 +38,15 @@ class WandbLogger:
         if not self.initialized:
             initialize()
         file_path = os.path.join(output_dir, model_name)
-        torch.save({
+
+        checkpoint = {
             'model_state': model.state_dict(),
             'optimizer_state': optimizer.state_dict(),
             'scheduler_state': scheduler.state_dict(),
             'epoch': epoch
-        }, file_path)
+        }
+        torch.save(checkpoint, file_path)
+
         artifact = wandb.Artifact('model', type='model')
         artifact.add_file(file_path)
         self.run.log_artifact(artifact)
