@@ -10,7 +10,6 @@ virtualenv .venv
 source .venv/bin/activate
 pip install --upgrade pip
 pip install torch
-pip install flash-attention
 pip install toml
 pip install wandb
 pip install git+https://github.com/LAL/trackml-library.git
