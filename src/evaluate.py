@@ -99,6 +99,9 @@ def main(config_path):
     training_utils.log_memory_usage()
     evaluate(model, data_loader, helper_loader, truths_df, device, wandb_logger)
     logging.info("Finished evaluation.")
+
+    total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    logging.info(f"Total Trainable Parameters: {total_params}")
     wandb_logger.finish()
 
 
