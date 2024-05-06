@@ -213,7 +213,12 @@ def main(config_path):
 
         val_loss = validate_epoch(model, val_loader, criterion, device, config, epoch, val_metrics_calculator, wandb_logger)
         # adjust learning rate based on validation loss
-        lr_scheduler.step(val_loss) 
+        lr_scheduler.step(val_loss)
+        if config['training']['scheduler']['verbose']:
+            current_lr = lr_scheduler.get_last_lr()[0] #get_last_lr returns a list
+            logging.info(f"lr: {current_lr}")
+            wandb_logger.log({"lr": current_lr})
+ 
         # stop training and checkpoint the model if val loss stops improving
         early_stopper(val_loss)
         if early_stopper.should_stop():
