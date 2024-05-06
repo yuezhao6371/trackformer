@@ -56,3 +56,4 @@ model_save_interval = 50
 entity = "entity"
 project_name = "project_name"
 run_name = "run_name"
+watch_interval = 50
