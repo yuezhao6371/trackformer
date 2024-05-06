@@ -34,6 +34,17 @@ class WandbLogger:
             initialize()
         wandb.log(data)
 
+    def log_gradient_norm(self, model):
+        if not self.initialized:
+            initialize()
+        total_norm = 0
+        for p in model.parameters():
+            param_norm = p.grad.data.norm(2)
+            total_norm += param_norm.item()**2
+        total_norm = total_norm ** 0.5
+
+        self.log({'gradient_norm': total_norm})
+
     def save_model(self, model, model_name, optimizer, scheduler, epoch, output_dir):
         if not self.initialized:
             initialize()

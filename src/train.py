@@ -99,6 +99,9 @@ def train_epoch(model, trainloader, optimizer, criterion, device, config, epoch,
 
         loss = criterion(outputs, labels)
         loss.backward()
+        if config['logging']['level'] == 'DEBUG':
+            wandb_logger.log_gradient_norm(model)
+
         optimizer.step()
         
         # update values used for calculating metrics
