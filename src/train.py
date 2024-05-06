@@ -204,6 +204,10 @@ def main(config_path):
 
     logging.info("Started training and validation")
     training_utils.log_memory_usage()
+    if 'watch_interval' in config['wandb']:
+        watch_interval = config['wandb']['watch_interval']
+        wandb_logger.run.watch(model, log_freq=watch_interval)
+        logging.info(f"wandb started watching at interval {watch_interval} ")
     for epoch in range(start_epoch, config['training']['total_epochs']):
         # resetting values used for calculating epoch metrics
         train_metrics_calculator.reset()
