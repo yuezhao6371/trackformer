@@ -178,7 +178,7 @@ def test(model, testloader, helperloader, truths_df, device, wandb_logger):
     logging.info(f'Test accuracy: {accuracy:.2f}%')
     logging.info(f'Test TrackML score: {score:.2f}%')
     logging.info(f'Test true score: {true_score:.2f}%')
-    wandb_logger.log({"test_accuracy": accuracy, "test_score": score, "true_score": true_score})
+    wandb_logger.log({'test_accuracy': accuracy, 'test_score': score, 'true_score': true_score})
     
 
 def main(config_path):
@@ -186,12 +186,12 @@ def main(config_path):
     output_dir = output_utils.unique_output_dir(config) # with time stamp
     output_utils.copy_config_to_output(config_path, output_dir)
     setup_logging(config, output_dir)
-    logging.info(f'output_dir: {output_dir}%')
     wandb_logger = initialize_wandb(config, output_dir)
+    logging.info(f'output_dir: {output_dir}')
     early_stopper = training_utils.EarlyStopping(config['training']['early_stopping'], output_dir)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    logging.info(f"Device: {device}")
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    logging.info(f'Device: {device}')
 
     model, optimizer, lr_scheduler, criterion, start_epoch = setup_training(config, device)
     loaders = data_utils.load_dataloader(config, device, mode='all')
