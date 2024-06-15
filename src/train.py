@@ -219,7 +219,7 @@ def main(config_path):
         # adjust learning rate based on validation loss
         lr_scheduler.step(val_loss)
         if config['training']['scheduler']['verbose']:
-            current_lr = lr_scheduler.get_last_lr()[0] #get_last_lr returns a list
+            current_lr = optimizer.param_groups[0]['lr'] # get last lr
             logging.info(f"lr: {current_lr}")
             wandb_logger.log({"lr": current_lr})
  
