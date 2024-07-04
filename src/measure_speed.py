@@ -89,8 +89,8 @@ def evaluate(model, testloader, helperloader, truths_df, device, config, wandb_l
             
             test_metrics_calculator.add_true_score(hit_ids, event_ids, outputs, truths_df)
 
-    avg_cpu_time_ms = sum(cpu_times_ms[1:])/len(cpu_times_ms[1:])
-    avg_gpu_time_ms = sum(gpu_times_ms[1:])/len(gpu_times_ms[1:])
+    avg_cpu_time_ms = sum(cpu_time_ms[1:])/len(cpu_time_ms[1:])
+    avg_gpu_time_ms = sum(gpu_time_ms[1:])/len(gpu_time_ms[1:])
     logging.info(f'Avg CPU time: {avg_cpu_time_ms:.2f} ms')
     logging.info(f'Avg GPU time: {avg_gpu_time_ms:.2f} ms')
     wandb_logger.log({
