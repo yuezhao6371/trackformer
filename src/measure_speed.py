@@ -88,11 +88,6 @@ def evaluate(model, testloader, helperloader, truths_df, device, config, wandb_l
             outputs = model(inputs).view(-1, model.num_classes)
             labels = labels.view(-1)
 
-            ### adding unsqueeze to compare with Nadia
-            # test = torch.unsqueeze(outputs,0)
-            # test = torch.unsqueeze(labels,0)
-            ### adding unsqueeze to compare with Nadia
-
             end_gpu_event.record()
             torch.cuda.synchronize()
             batch_gpu_time_ms = start_gpu_event.elapsed_time(end_gpu_event)
