@@ -6,6 +6,13 @@ import pandas as pd
 
 class MetricsCalculator:
     def __init__(self, num_classes):
+        self.class_correct_counts = np.ndarray
+        self.class_total_counts = np.ndarray
+        self.predicted_total_counts = np.ndarray
+        self.total_loss = float
+        self.correct_predictions = int
+        self.total_predictions = int
+        self.all_true_scores = List[float]
         self.num_classes = num_classes
         self.reset()
 
