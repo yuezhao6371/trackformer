@@ -2,6 +2,7 @@ import wandb
 import os
 import torch
 
+
 class WandbLogger:
     def __init__(
         self,
@@ -40,10 +41,10 @@ class WandbLogger:
         total_norm = 0
         for p in model.parameters():
             param_norm = p.grad.data.norm(2)
-            total_norm += param_norm.item()**2
-        total_norm = total_norm ** 0.5
+            total_norm += param_norm.item() ** 2
+        total_norm = total_norm**0.5
 
-        self.log({'gradient_norm': total_norm})
+        self.log({"gradient_norm": total_norm})
 
     def save_model(self, model, model_name, optimizer, scheduler, epoch, output_dir):
         if not self.initialized:
@@ -51,14 +52,14 @@ class WandbLogger:
         file_path = os.path.join(output_dir, model_name)
 
         checkpoint = {
-            'model_state': model.state_dict(),
-            'optimizer_state': optimizer.state_dict(),
-            'scheduler_state': scheduler.state_dict(),
-            'epoch': epoch
+            "model_state": model.state_dict(),
+            "optimizer_state": optimizer.state_dict(),
+            "scheduler_state": scheduler.state_dict(),
+            "epoch": epoch,
         }
         torch.save(checkpoint, file_path)
 
-        artifact = wandb.Artifact('model', type='model')
+        artifact = wandb.Artifact("model", type="model")
         artifact.add_file(file_path)
         self.run.log_artifact(artifact)
 
